@@ -1,5 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
+set -e
 
 echo "╭━━━╮╭╮╭╮╱╱╱╱╭╮╱╱╭╮╱╭╮╱╱╱╭╮╱╱╱╱╱╱╱╱╱╱╭━━━╮╱╭╮╭╮";
 echo "┃╭━╮┣╯╰┫┃╱╱╱╱┃┃╱╱┃┃╱┃┃╱╱╭╯╰╮╱╱╱╱╱╱╱╱╱┃╭━━╯╱┃┣╯╰╮";
@@ -10,18 +11,27 @@ echo "╰━━━┻┻━┻╯╰┻━━┻━━╯╰╯╱╰┻┻━�
 echo "╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃";
 echo "╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯";
 
-read -r -p 'How many commits per day should be made: ' COMMITS_PER_DAY;
-read -r -p 'How many days back should be gone: ' COMMITS_BACK;
+MONTHS_BACK=6
 
-commit_day_index=0;
-while [ "$commit_day_index" -le "$COMMITS_BACK" ]; do
-    commit_per_day_index=0;
-    while [ "$commit_per_day_index" -le "$COMMITS_PER_DAY" ]; do
-        day=$(date -d "$commit_day_index days ago $commit_per_day_index seconds ago" '+%a %b %d %H:%M %Y %Z');
+# times of day for commits
+TIMES=("09:00:00" "14:00:00" "19:00:00")
 
-        echo "commiting to this time: $day";
-        GIT_COMMITTER_DATE="$day" git commit --date "$day" --allow-empty --allow-empty-message -m ''
-        commit_per_day_index=$(($commit_per_day_index+1));
-    done;
-    commit_day_index=$(($commit_day_index+1));
-done;
+# starting date - 6 months ago
+START_DATE=$(date -d "$MONTHS_BACK months ago" +"%Y-%m-%d")
+END_DATE=$(date +"%Y-%m-%d")
+
+current_date="$START_DATE"
+
+while [[ "$current_date" <="$END_DATE" ]]; do
+  for time in "${TIMES[@]}"; do
+    commit_datetime="$current_date $time"
+
+    GIT_AUTHOR_DATE="$commit_datetime" \
+    GIT_COMMITTER_DATE="$commit_datetime" \
+    git commit --allow-empty -m "chore: work on $current_date"
+  done
+
+  current_date=$(date -d "$current_date + 1 day" +"%Y-%m-%d")
+done
+
+echo "Done. Don't forget to force-push."
